@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>مسابقة</title>
+<style>
+body { font-family: Arial; background:#f4f4f4; padding:20px; }
+.box { background:white; padding:20px; border-radius:10px; width:400px; margin:auto; }
+input, button { width:100%; padding:10px; margin:10px 0; font-size:16px; }
+#adminPanel { margin-top:20px; padding:20px; background:#eee; display:none; }
+</style>
+</head>
+<body>
+
+<div class="box" id="mainBox">
+
+    <h2>المسابقة</h2>
+
+    <!-- خطوة إدخال الاسم -->
+    <div id="nameStep">
+        <label>ادخل اسمك:</label>
+        <input type="text" id="playerName">
+        <button onclick="start()">ابدأ</button>
+    </div>
+
+    <!-- خطوة السؤال -->
+    <div id="questionStep" style="display:none;">
+        <h3>السؤال:</h3>
+
+        <!-- صورة أو فيديو (غيّر الرابط كما تريد) -->
+        <img id="contestImage" src="https://via.placeholder.com/350" width="100%" style="border-radius:10px; margin-bottom:10px;">
+
+        <p id="questionText">ما هو حاصل 2 + 2 ؟</p>
+
+        <input type="text" id="answerInput" placeholder="اكتب إجابتك">
+        <button onclick="submitAnswer()">إرسال الإجابة</button>
+    </div>
+
+    <!-- نتيجة اللاعب -->
+    <div id="resultStep" style="display:none;">
+        <h3>تم تسجيل إجابتك</h3>
+        <p id="playerScore"></p>
+        <button onclick="showAdminLogin()">للمالك فقط</button>
+    </div>
+
+    <!-- تسجيل دخول المالك -->
+    <div id="adminLogin" style="display:none;">
+        <input type="password" id="adminPass" placeholder="ادخل كلمة السر">
+        <button onclick="adminCheck()">دخول</button>
+    </div>
+
+    <!-- لوحة الإدارة -->
+    <div id="adminPanel">
+        <h3>ترتيب المشتركين</h3>
+        <ol id="ranking"></ol>
+
+        <h3>تغيير السؤال</h3>
+        <textarea id="newQuestion" style="width:100%; height:80px;"></textarea>
+        <input type="text" id="newAnswer" placeholder="الإجابة الصحيحة الجديدة">
+        <input type="text" id="newImage" placeholder="رابط صورة/فيديو">
+        <button onclick="updateQuestion()">تحديث السؤال</button>
+    </div>
+
+</div>
+
+<script>
+// تحميل البيانات من التخزين
+let players = JSON.parse(localStorage.getItem("players") || "{}");
+
+let question = localStorage.getItem("qText") || "ما هو حاصل 2 + 2 ؟";
+let answer = localStorage.getItem("qAns") || "4";
+let image = localStorage.getItem("qImg") || "https://via.placeholder.com/350";
+
+// تحديث العناصر المعروضة
+document.getElementById("questionText").innerText = question;
+document.getElementById("contestImage").src = image;
+
+// بدء المسابقة
+function start() {
+    let name = document.getElementById("playerName").value.trim();
+
+    if (name === "") return alert("اكتب اسمك");
+
+    if (players[name]) return alert("لقد شاركت بالفعل، انتظر السؤال القادم.");
+
+    localStorage.setItem("currentPlayer", name);
+
+    document.getElementById("nameStep").style.display = "none";
+    document.getElementById("questionStep").style.display = "block";
+}
+
+// إرسال الإجابة
+function submitAnswer() {
+    let name = localStorage.getItem("currentPlayer");
+    let ans = document.getElementById("answerInput").value.trim();
+
+    let score = (ans == answer ? 3 : 0);
+
+    players[name] = score;
+
+    localStorage.setItem("players", JSON.stringify(players));
+
+    document.getElementById("questionStep").style.display = "none";
+    document.getElementById("resultStep").style.display = "block";
+    document.getElementById("playerScore").innerText = "نقاطك: " + score;
+}
+
+// إظهار تسجيل دخول المالك
+function showAdminLogin() {
+    document.getElementById("adminLogin").style.display = "block";
+}
+
+// فحص دخول المالك
+function adminCheck() {
+    let pass = document.getElementById("adminPass").value;
+    if (pass === "Dosary") {
+        showRanking();
+        document.getElementById("adminPanel").style.display = "block";
+    } else {
+        alert("كلمة السر خاطئة");
+    }
+}
+
+// عرض الترتيب
+function showRanking() {
+    let list = document.getElementById("ranking");
+    list.innerHTML = "";
+
+    let sorted = Object.entries(players).sort((a,b)=>b[1]-a[1]);
+
+    sorted.forEach(p => {
+        let li = document.createElement("li");
+        li.innerText = p[0] + " : " + p[1] + " نقاط";
+        list.appendChild(li);
+    });
+}
+
+// تحديث السؤال (المالك فقط)
+function updateQuestion() {
+    let q = document.getElementById("newQuestion").value.trim();
+    let a = document.getElementById("newAnswer").value.trim();
+    let img = document.getElementById("newImage").value.trim();
+
+    if (!q || !a) return alert("املأ كل الخانات");
+
+    localStorage.setItem("qText", q);
+    localStorage.setItem("qAns", a);
+    localStorage.setItem("qImg", img || "https://via.placeholder.com/350");
+
+    // إعادة ضبط المشاركين
+    localStorage.removeItem("players");
+    players = {};
+
+    alert("تم تحديث السؤال وتمكين الناس من المشاركة من جديد");
+    location.reload();
+}
+</script>
+
+</body>
+</html>
