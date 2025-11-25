@@ -1,245 +1,92 @@
-    <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<!DOCTYPE html>
+<html lang="ar">
 <head>
-<meta charset="UTF-8">
-<title>مسابقة</title>
-<style>
-body {
-    font-family: Arial;
-    background: #000;
-    color: #fff;
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin: 0;
-}
-.box {
-    background: #111;
-    padding: 20px;
-    border-radius: 10px;
-    width: 400px;
-}
-input, button, textarea {
-    width: 100%;
-    padding: 10px;
-    margin: 10px 0;
-    font-size: 16px;
-    border-radius: 5px;
-    border: none;
-}
-input, textarea {
-    background: #222;
-    color: #fff;
-}
-button {
-    background: #444;
-    color: #fff;
-    cursor: pointer;
-}
-button:hover { background: #666; }
-#adminPanel { margin-top: 20px; padding: 20px; background: #222; display: none; }
-#contestMedia iframe, #contestMedia img { border-radius: 10px; width: 100%; }
-</style>
+    <meta charset="UTF-8">
+    <title>مسابقة</title>
+    <style>
+        body {
+            background: #000;
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            direction: rtl;
+        }
+        #box {
+            width: 90%;
+            max-width: 500px;
+            margin: auto;
+            margin-top: 60px;
+            padding: 20px;
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 10px;
+        }
+        input, button {
+            padding: 10px;
+            width: 90%;
+            margin: 8px;
+            border-radius: 6px;
+            border: none;
+        }
+        button {
+            background: #444;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #666;
+        }
+        img, video {
+            width: 100%;
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+        #adminPanel {
+            display: none;
+            margin-top: 25px;
+            background: #222;
+            padding: 15px;
+            border-radius: 10px;
+        }
+    </style>
 </head>
+
 <body>
 
-<div class="box" id="mainBox">
+<div id="box">
+    <h2>مرحباً بالمشارك</h2>
 
-    <h2>المسابقة</h2>
-
-    <div id="nameStep">
-        <label>ادخل اسمك:</label>
-        <input type="text" id="playerName">
-        <button onclick="start()">ابدأ</button>
+    <div id="nameSection">
+        <input id="playerName" placeholder="اكتب اسمك للدخول">
+        <button onclick="enterGame()">دخول</button>
     </div>
 
-    <div id="questionStep" style="display:none;">
-        <h3>السؤال:</h3>
-        <div id="contestMedia"></div>
-        <p id="questionText"></p>
-        <input type="text" id="answerInput" placeholder="اكتب إجابتك">
+    <div id="contentSection" style="display:none;">
+        <img id="quizImage" src="IMAGE_LINK_HERE">
+
+        <h3 id="question">ما هو السؤال؟</h3>
+
+        <input id="answer" placeholder="اكتب إجابتك">
         <button onclick="submitAnswer()">إرسال الإجابة</button>
+
+        <p id="scoreText"></p>
     </div>
 
-    <div id="resultStep" style="display:none;">
-        <h3>تم تسجيل إجابتك</h3>
-        <p id="playerScore"></p>
-        <button onclick="showAdminLogin()">للمالك فقط</button>
-    </div>
-
-    <div id="adminLogin" style="display:none;">
-        <input type="password" id="adminPass" placeholder="ادخل كلمة السر">
-        <button onclick="adminCheck()">دخول</button>
-    </div>
+    <!-- زر المالك -->
+    <button onclick="adminLogin()">دخول المالك</button>
 
     <div id="adminPanel">
-        <h3>ترتيب المشتركين</h3>
-        <ol id="ranking"></ol>
+        <h3>لوحة المالك</h3>
 
-        <h3>تغيير السؤال</h3>
-        <textarea id="newQuestion" style="width:100%; height:80px;"></textarea>
-        <input type="text" id="newAnswer" placeholder="الإجابة الصحيحة الجديدة">
-        <input type="text" id="newMedia" placeholder="رابط صورة/يوتيوب/Streamable">
-        <button onclick="updateQuestion()">تحديث السؤال</button>
-        <button onclick="resetPoints()">تصفير جميع النقاط</button>
-        <button onclick="deletePlayers()">حذف جميع المشتركين</button>
+        <button onclick="resetScores()">تصفير النقاط</button>
+        <button onclick="deletePlayers()">حذف كل المشتركين</button>
+        <button onclick="changeQuestion()">تغيير السؤال</button>
+
     </div>
 
 </div>
 
-<script>
-// بيانات النظام
-let players = JSON.parse(localStorage.getItem("players") || "{}");
-let answeredPlayers = JSON.parse(localStorage.getItem("answeredPlayers") || "[]");
-let question = localStorage.getItem("qText") || "ما هو حاصل 2 + 2 ؟";
-let answer = localStorage.getItem("qAns") || "4";
-let media = localStorage.getItem("qMedia") || "";
-
-// عرض الوسائط
-updateMediaDisplay(media);
-document.getElementById("questionText").innerText = question;
-
-// دالة عرض الصور والفيديوهات
-function updateMediaDisplay(url){
-    let container = document.getElementById("contestMedia");
-
-    if(!url || url.trim()===""){
-        container.innerHTML = "";
-        return;
-    }
-
-    // صورة
-    if(url.match(/\.(jpg|png|jpeg|gif)$/)){
-        container.innerHTML = `<img src="${url}">`;
-
-    // YouTube
-    } else if(url.includes("youtube.com") || url.includes("youtu.be")){
-        let id = url.split("v=")[1] || url.split("youtu.be/")[1];
-        container.innerHTML =
-            `<iframe src="https://www.youtube.com/embed/${id}" height="300" frameborder="0" allowfullscreen></iframe>`;
-
-    // Streamable
-    } else if(url.includes("streamable.com")){
-        let id = url.split("/").pop();
-        container.innerHTML =
-            `<iframe src="https://streamable.com/e/${id}" height="300" frameborder="0" allowfullscreen></iframe>`;
-
-    // أي فيديو آخر
-    } else {
-        container.innerHTML =
-            `<iframe src="${url}" height="300" frameborder="0" allowfullscreen></iframe>`;
-    }
-}
-
-// بدء المسابقة
-function start() {
-    let name = document.getElementById("playerName").value.trim();
-    if(name==="") return alert("اكتب اسمك");
-
-    if(answeredPlayers.includes(name)){
-        return alert("لقد أجبت مسبقًا. انتظر تغيير السؤال.");
-    }
-
-    if(!players[name]) players[name] = {score:0};
-
-    localStorage.setItem("currentPlayer", name);
-
-    document.getElementById("nameStep").style.display="none";
-    document.getElementById("questionStep").style.display="block";
-}
-
-// إرسال الإجابة
-function submitAnswer() {
-    let name = localStorage.getItem("currentPlayer");
-    let ans = document.getElementById("answerInput").value.trim();
-
-    let earned = (ans == answer ? 3 : 0);
-
-    players[name].score += earned;
-
-    localStorage.setItem("players", JSON.stringify(players));
-
-    answeredPlayers.push(name);
-    localStorage.setItem("answeredPlayers", JSON.stringify(answeredPlayers));
-
-    document.getElementById("questionStep").style.display="none";
-    document.getElementById("resultStep").style.display="block";
-    document.getElementById("playerScore").innerText = "نقاطك: " + players[name].score;
-}
-
-// لوحة المالك
-function showAdminLogin(){
-    document.getElementById("adminLogin").style.display="block";
-}
-
-function adminCheck(){
-    if(document.getElementById("adminPass").value === "Dosary"){
-        showRanking();
-        document.getElementById("adminPanel").style.display="block";
-    } else {
-        alert("كلمة السر غلط");
-    }
-}
-
-// عرض الترتيب
-function showRanking(){
-    let list = document.getElementById("ranking");
-    list.innerHTML = "";
-
-    let sorted = Object.entries(players)
-        .sort((a,b)=>b[1].score - a[1].score);
-
-    sorted.forEach(p=>{
-        let li = document.createElement("li");
-        li.innerText = p[0] + " : " + p[1].score + " نقاط";
-        list.appendChild(li);
-    });
-}
-
-// تحديث السؤال
-function updateQuestion(){
-    let q = document.getElementById("newQuestion").value.trim();
-    let a = document.getElementById("newAnswer").value.trim();
-    let m = document.getElementById("newMedia").value.trim();
-
-    if(!q || !a) return alert("اكتب السؤال والإجابة");
-
-    localStorage.setItem("qText", q);
-    localStorage.setItem("qAns", a);
-    localStorage.setItem("qMedia", m);
-
-    answeredPlayers = [];
-    localStorage.setItem("answeredPlayers", "[]");
-
-    alert("تم تحديث السؤال بنجاح");
-    location.reload();
-}
-
-// تصفير النقاط
-function resetPoints(){
-    if(confirm("هل تريد تصفير النقاط؟")){
-        for(let name in players){
-            players[name].score = 0;
-        }
-        localStorage.setItem("players", JSON.stringify(players));
-        showRanking();
-        alert("تم التصفير");
-    }
-}
-
-// حذف المشتركين
-function deletePlayers(){
-    if(confirm("هل تريد حذف جميع المشتركين؟")){
-        players = {};
-        answeredPlayers = [];
-        localStorage.removeItem("players");
-        localStorage.removeItem("answeredPlayers");
-        alert("تم الحذف");
-        location.reload();
-    }
-}
-</script>
+<script src="script.js?v=1"></script>
 
 </body>
 </html>
