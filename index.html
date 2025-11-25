@@ -6,7 +6,7 @@
 <style>
 body { font-family: Arial; background:#f4f4f4; padding:20px; }
 .box { background:white; padding:20px; border-radius:10px; width:400px; margin:auto; }
-input, button { width:100%; padding:10px; margin:10px 0; font-size:16px; }
+input, button, textarea { width:100%; padding:10px; margin:10px 0; font-size:16px; }
 #adminPanel { margin-top:20px; padding:20px; background:#eee; display:none; }
 </style>
 </head>
@@ -26,12 +26,8 @@ input, button { width:100%; padding:10px; margin:10px 0; font-size:16px; }
     <!-- خطوة السؤال -->
     <div id="questionStep" style="display:none;">
         <h3>السؤال:</h3>
-
-        <!-- صورة أو فيديو (غيّر الرابط كما تريد) -->
-        <img id="contestImage" src="https://via.placeholder.com/350" width="100%" style="border-radius:10px; margin-bottom:10px;">
-
+        <div id="contestMedia"></div>
         <p id="questionText">ما هو حاصل 2 + 2 ؟</p>
-
         <input type="text" id="answerInput" placeholder="اكتب إجابتك">
         <button onclick="submitAnswer()">إرسال الإجابة</button>
     </div>
@@ -57,101 +53,87 @@ input, button { width:100%; padding:10px; margin:10px 0; font-size:16px; }
         <h3>تغيير السؤال</h3>
         <textarea id="newQuestion" style="width:100%; height:80px;"></textarea>
         <input type="text" id="newAnswer" placeholder="الإجابة الصحيحة الجديدة">
-        <input type="text" id="newImage" placeholder="رابط صورة/فيديو">
+        <input type="text" id="newMedia" placeholder="رابط صورة/فيديو/يوتيوب/Streamable">
         <button onclick="updateQuestion()">تحديث السؤال</button>
     </div>
 
 </div>
 
 <script>
-// تحميل البيانات من التخزين
+// تحميل البيانات
 let players = JSON.parse(localStorage.getItem("players") || "{}");
-
 let question = localStorage.getItem("qText") || "ما هو حاصل 2 + 2 ؟";
 let answer = localStorage.getItem("qAns") || "4";
-let image = localStorage.getItem("qImg") || "https://via.placeholder.com/350";
+let media = localStorage.getItem("qMedia") || "https://via.placeholder.com/350";
 
-// تحديث العناصر المعروضة
+updateMediaDisplay(media);
 document.getElementById("questionText").innerText = question;
-document.getElementById("contestImage").src = image;
+
+// عرض الصورة أو الفيديو
+function updateMediaDisplay(url){
+    let container = document.getElementById("contestMedia");
+    if(url.includes(".jpg") || url.includes(".png") || url.includes(".jpeg")){
+        container.innerHTML = `<img src="${url}" width="100%" style="border-radius:10px;">`;
+    } else if(url.includes("youtube.com") || url.includes("youtu.be")){
+        let id = url.split("v=")[1] || url.split("youtu.be/")[1];
+        container.innerHTML = `<iframe src="https://www.youtube.com/embed/${id}" width="100%" height="300" frameborder="0" allowfullscreen></iframe>`;
+    } else {
+        container.innerHTML = `<iframe src="${url}" width="100%" height="300" frameborder="0" allowfullscreen></iframe>`;
+    }
+}
 
 // بدء المسابقة
 function start() {
     let name = document.getElementById("playerName").value.trim();
-
-    if (name === "") return alert("اكتب اسمك");
-
-    if (players[name]) return alert("لقد شاركت بالفعل، انتظر السؤال القادم.");
-
+    if(name==="") return alert("اكتب اسمك");
+    if(players[name]) return alert("لقد شاركت بالفعل، انتظر السؤال القادم.");
     localStorage.setItem("currentPlayer", name);
-
-    document.getElementById("nameStep").style.display = "none";
-    document.getElementById("questionStep").style.display = "block";
+    document.getElementById("nameStep").style.display="none";
+    document.getElementById("questionStep").style.display="block";
 }
 
 // إرسال الإجابة
 function submitAnswer() {
     let name = localStorage.getItem("currentPlayer");
     let ans = document.getElementById("answerInput").value.trim();
-
-    let score = (ans == answer ? 3 : 0);
-
+    let score = (ans==answer?3:0);
     players[name] = score;
-
     localStorage.setItem("players", JSON.stringify(players));
-
-    document.getElementById("questionStep").style.display = "none";
-    document.getElementById("resultStep").style.display = "block";
-    document.getElementById("playerScore").innerText = "نقاطك: " + score;
+    document.getElementById("questionStep").style.display="none";
+    document.getElementById("resultStep").style.display="block";
+    document.getElementById("playerScore").innerText = "نقاطك: "+score;
 }
 
-// إظهار تسجيل دخول المالك
-function showAdminLogin() {
-    document.getElementById("adminLogin").style.display = "block";
-}
-
-// فحص دخول المالك
-function adminCheck() {
+// لوحة المالك
+function showAdminLogin(){document.getElementById("adminLogin").style.display="block";}
+function adminCheck(){
     let pass = document.getElementById("adminPass").value;
-    if (pass === "Dosary") {
-        showRanking();
-        document.getElementById("adminPanel").style.display = "block";
-    } else {
-        alert("كلمة السر خاطئة");
-    }
+    if(pass==="Dosary"){showRanking(); document.getElementById("adminPanel").style.display="block";}
+    else alert("كلمة السر خاطئة");
 }
 
 // عرض الترتيب
-function showRanking() {
-    let list = document.getElementById("ranking");
-    list.innerHTML = "";
-
-    let sorted = Object.entries(players).sort((a,b)=>b[1]-a[1]);
-
-    sorted.forEach(p => {
-        let li = document.createElement("li");
-        li.innerText = p[0] + " : " + p[1] + " نقاط";
+function showRanking(){
+    let list=document.getElementById("ranking"); list.innerHTML="";
+    let sorted=Object.entries(players).sort((a,b)=>b[1]-a[1]);
+    sorted.forEach(p=>{
+        let li=document.createElement("li");
+        li.innerText=p[0]+" : "+p[1]+" نقاط";
         list.appendChild(li);
     });
 }
 
-// تحديث السؤال (المالك فقط)
-function updateQuestion() {
+// تحديث السؤال والوسائط
+function updateQuestion(){
     let q = document.getElementById("newQuestion").value.trim();
     let a = document.getElementById("newAnswer").value.trim();
-    let img = document.getElementById("newImage").value.trim();
-
-    if (!q || !a) return alert("املأ كل الخانات");
-
+    let m = document.getElementById("newMedia").value.trim();
+    if(!q || !a) return alert("املأ كل الخانات");
     localStorage.setItem("qText", q);
     localStorage.setItem("qAns", a);
-    localStorage.setItem("qImg", img || "https://via.placeholder.com/350");
-
-    // إعادة ضبط المشاركين
-    localStorage.removeItem("players");
-    players = {};
-
-    alert("تم تحديث السؤال وتمكين الناس من المشاركة من جديد");
+    localStorage.setItem("qMedia", m || "https://via.placeholder.com/350");
+    localStorage.removeItem("players"); players={};
+    alert("تم تحديث السؤال والوسائط وتمكين المشتركين من المشاركة من جديد");
     location.reload();
 }
 </script>
