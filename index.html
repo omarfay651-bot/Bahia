@@ -1,4 +1,4 @@
-    <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
@@ -19,6 +19,7 @@ body {
     padding: 20px;
     border-radius: 10px;
     width: 400px;
+    text-align: center;
 }
 input, button, textarea {
     width: 100%;
@@ -28,18 +29,11 @@ input, button, textarea {
     border-radius: 5px;
     border: none;
 }
-input, textarea {
-    background: #222;
-    color: #fff;
-}
-button {
-    background: #444;
-    color: #fff;
-    cursor: pointer;
-}
+input, textarea { background: #222; color: #fff; }
+button { background: #444; color: #fff; cursor: pointer; }
 button:hover { background: #666; }
 #adminPanel { margin-top: 20px; padding: 20px; background: #222; display: none; }
-#contestMedia iframe, #contestMedia img { border-radius: 10px; width: 100%; }
+#contestMedia iframe, #contestMedia img { border-radius: 10px; width: 100%; height: 300px; }
 </style>
 </head>
 <body>
@@ -92,43 +86,38 @@ button:hover { background: #666; }
 // بيانات النظام
 let players = JSON.parse(localStorage.getItem("players") || "{}");
 let answeredPlayers = JSON.parse(localStorage.getItem("answeredPlayers") || "[]");
+
+// السؤال والوسائط الافتراضية
 let question = localStorage.getItem("qText") || "ما هو حاصل 2 + 2 ؟";
 let answer = localStorage.getItem("qAns") || "4";
-let media = localStorage.getItem("qMedia") || "";
+let media = localStorage.getItem("qMedia") || "https://streamable.com/azvrbo";
 
-// عرض الوسائط
+// عرض السؤال والفيديو/صورة
 updateMediaDisplay(media);
 document.getElementById("questionText").innerText = question;
 
-// دالة عرض الصور والفيديوهات
+// دالة عرض الوسائط
 function updateMediaDisplay(url){
     let container = document.getElementById("contestMedia");
-
-    if(!url || url.trim()===""){
-        container.innerHTML = "";
-        return;
-    }
+    if(!url || url.trim()===""){ container.innerHTML=""; return; }
 
     // صورة
     if(url.match(/\.(jpg|png|jpeg|gif)$/)){
         container.innerHTML = `<img src="${url}">`;
-
     // YouTube
     } else if(url.includes("youtube.com") || url.includes("youtu.be")){
         let id = url.split("v=")[1] || url.split("youtu.be/")[1];
         container.innerHTML =
-            `<iframe src="https://www.youtube.com/embed/${id}" height="300" frameborder="0" allowfullscreen></iframe>`;
-
+            `<iframe src="https://www.youtube.com/embed/${id}" frameborder="0" allowfullscreen></iframe>`;
     // Streamable
     } else if(url.includes("streamable.com")){
         let id = url.split("/").pop();
         container.innerHTML =
-            `<iframe src="https://streamable.com/e/${id}" height="300" frameborder="0" allowfullscreen></iframe>`;
-
+            `<iframe src="https://streamable.com/e/${id}" frameborder="0" allowfullscreen></iframe>`;
     // أي فيديو آخر
     } else {
         container.innerHTML =
-            `<iframe src="${url}" height="300" frameborder="0" allowfullscreen></iframe>`;
+            `<iframe src="${url}" frameborder="0" allowfullscreen></iframe>`;
     }
 }
 
@@ -155,9 +144,7 @@ function submitAnswer() {
     let ans = document.getElementById("answerInput").value.trim();
 
     let earned = (ans == answer ? 3 : 0);
-
     players[name].score += earned;
-
     localStorage.setItem("players", JSON.stringify(players));
 
     answeredPlayers.push(name);
@@ -186,10 +173,8 @@ function adminCheck(){
 function showRanking(){
     let list = document.getElementById("ranking");
     list.innerHTML = "";
-
     let sorted = Object.entries(players)
         .sort((a,b)=>b[1].score - a[1].score);
-
     sorted.forEach(p=>{
         let li = document.createElement("li");
         li.innerText = p[0] + " : " + p[1].score + " نقاط";
@@ -219,9 +204,7 @@ function updateQuestion(){
 // تصفير النقاط
 function resetPoints(){
     if(confirm("هل تريد تصفير النقاط؟")){
-        for(let name in players){
-            players[name].score = 0;
-        }
+        for(let name in players){ players[name].score = 0; }
         localStorage.setItem("players", JSON.stringify(players));
         showRanking();
         alert("تم التصفير");
