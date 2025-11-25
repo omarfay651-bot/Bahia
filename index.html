@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title>مسابقة</title>
+<title>مسابقة متزامنة</title>
 <style>
 body {
     font-family: Arial;
@@ -18,200 +18,209 @@ body {
     background: #111;
     padding: 20px;
     border-radius: 10px;
-    width: 400px;
+    width: 90%;
+    max-width: 500px;
     text-align: center;
 }
 input, button, textarea {
     width: 100%;
     padding: 10px;
-    margin: 10px 0;
-    font-size: 16px;
+    margin: 8px 0;
     border-radius: 5px;
     border: none;
 }
 input, textarea { background: #222; color: #fff; }
 button { background: #444; color: #fff; cursor: pointer; }
 button:hover { background: #666; }
-#adminPanel { margin-top: 20px; padding: 20px; background: #222; display: none; }
-#contestMedia iframe, #contestMedia img { border-radius: 10px; width: 100%; height: 300px; }
+#contestMedia iframe, #contestMedia img { width: 100%; border-radius: 10px; margin-top: 10px; height: 300px; }
+#adminPanel { display: none; margin-top: 20px; background: #222; padding: 15px; border-radius: 10px; }
 </style>
 </head>
 <body>
 
 <div class="box" id="mainBox">
 
-    <h2>المسابقة</h2>
+  <h2>المسابقة</h2>
 
-    <div id="nameStep">
-        <label>ادخل اسمك:</label>
-        <input type="text" id="playerName">
-        <button onclick="start()">ابدأ</button>
-    </div>
+  <div id="nameStep">
+    <label>ادخل اسمك:</label>
+    <input type="text" id="playerName">
+    <button onclick="start()">ابدأ</button>
+  </div>
 
-    <div id="questionStep" style="display:none;">
-        <h3>السؤال:</h3>
-        <div id="contestMedia"></div>
-        <p id="questionText"></p>
-        <input type="text" id="answerInput" placeholder="اكتب إجابتك">
-        <button onclick="submitAnswer()">إرسال الإجابة</button>
-    </div>
+  <div id="questionStep" style="display:none;">
+    <h3>السؤال:</h3>
+    <div id="contestMedia"></div>
+    <p id="questionText"></p>
+    <input type="text" id="answerInput" placeholder="اكتب إجابتك">
+    <button onclick="submitAnswer()">إرسال الإجابة</button>
+  </div>
 
-    <div id="resultStep" style="display:none;">
-        <h3>تم تسجيل إجابتك</h3>
-        <p id="playerScore"></p>
-        <button onclick="showAdminLogin()">للمالك فقط</button>
-    </div>
+  <div id="resultStep" style="display:none;">
+    <h3>تم تسجيل إجابتك</h3>
+    <p id="playerScore"></p>
+    <button onclick="showAdminLogin()">للمالك فقط</button>
+  </div>
 
-    <div id="adminLogin" style="display:none;">
-        <input type="password" id="adminPass" placeholder="ادخل كلمة السر">
-        <button onclick="adminCheck()">دخول</button>
-    </div>
+  <div id="adminLogin" style="display:none;">
+    <input type="password" id="adminPass" placeholder="ادخل كلمة السر">
+    <button onclick="adminCheck()">دخول</button>
+  </div>
 
-    <div id="adminPanel">
-        <h3>ترتيب المشتركين</h3>
-        <ol id="ranking"></ol>
+  <div id="adminPanel">
+    <h3>ترتيب المشتركين</h3>
+    <ol id="ranking"></ol>
 
-        <h3>تغيير السؤال</h3>
-        <textarea id="newQuestion" style="width:100%; height:80px;"></textarea>
-        <input type="text" id="newAnswer" placeholder="الإجابة الصحيحة الجديدة">
-        <input type="text" id="newMedia" placeholder="رابط صورة/يوتيوب/Streamable">
-        <button onclick="updateQuestion()">تحديث السؤال</button>
-        <button onclick="resetPoints()">تصفير جميع النقاط</button>
-        <button onclick="deletePlayers()">حذف جميع المشتركين</button>
-    </div>
+    <h3>تغيير السؤال</h3>
+    <textarea id="newQuestion" placeholder="السؤال الجديد"></textarea>
+    <input type="text" id="newAnswer" placeholder="الإجابة الصحيحة الجديدة">
+    <input type="text" id="newMedia" placeholder="رابط صورة/يوتيوب/Streamable">
+    <button onclick="updateQuestion()">تحديث السؤال</button>
+    <button onclick="resetPoints()">تصفير النقاط</button>
+    <button onclick="deletePlayers()">حذف جميع المشتركين</button>
+  </div>
 
 </div>
 
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
 <script>
-// قاعدة بيانات المشتركين
-let players = JSON.parse(localStorage.getItem("players") || "{}");
-let answeredPlayers = JSON.parse(localStorage.getItem("answeredPlayers") || "[]");
+// TODO: ضع هنا إعدادات Firebase الخاصة بك
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+  projectId: "YOUR_PROJECT",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "SENDER_ID",
+  appId: "APP_ID"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-// السؤال والوسائط الافتراضية
-let question = localStorage.getItem("qText") || "في أي عام هذه التلاوة؟";
-let answer = localStorage.getItem("qAns") || ""; // ضع الإجابة الصحيحة هنا إذا أحببت
-let media = localStorage.getItem("qMedia") || "https://streamable.com/azvrbo";
+// بيانات المسابقة
+let players = {};  // { name: { score: Number } }
+let answered = []; // [name1, name2,...]
+let question = "في أي عام هذه التلاوة؟";
+let correctAnswer = "";
+let media = "https://streamable.com/azvrbo";
 
-// عرض السؤال والوسائط
-updateMediaDisplay(media);
-document.getElementById("questionText").innerText = question;
+// قراءة البيانات من Firebase مباشرة
+db.ref('contest').on('value', snapshot => {
+  const data = snapshot.val();
+  if (data) {
+    question = data.question;
+    correctAnswer = data.answer;
+    media = data.media;
+    players = data.players || {};
+    answered = data.answered || [];
+    updateMediaDisplay(media);
+    document.getElementById("questionText").innerText = question;
+  }
+});
 
 // عرض الوسائط
 function updateMediaDisplay(url){
-    let container = document.getElementById("contestMedia");
-    if(!url || url.trim()===""){ container.innerHTML=""; return; }
-    if(url.match(/\.(jpg|png|jpeg|gif)$/)){
-        container.innerHTML = `<img src="${url}">`;
-    } else if(url.includes("youtube.com") || url.includes("youtu.be")){
-        let id = url.split("v=")[1] || url.split("youtu.be/")[1];
-        container.innerHTML = `<iframe src="https://www.youtube.com/embed/${id}" frameborder="0" allowfullscreen></iframe>`;
-    } else if(url.includes("streamable.com")){
-        let id = url.split("/").pop();
-        container.innerHTML = `<iframe src="https://streamable.com/e/${id}" frameborder="0" allowfullscreen></iframe>`;
-    } else {
-        container.innerHTML = `<iframe src="${url}" frameborder="0" allowfullscreen></iframe>`;
-    }
+  let c = document.getElementById("contestMedia");
+  if (!url) { c.innerHTML = ""; return; }
+  if (url.match(/\.(jpg|png|jpeg|gif)$/)){
+    c.innerHTML = `<img src="${url}">`;
+  } else if (url.includes("youtube.com") || url.includes("youtu.be")) {
+    let id = url.split("v=")[1] || url.split("youtu.be/")[1];
+    c.innerHTML = `<iframe src="https://www.youtube.com/embed/${id}" frameborder="0" allowfullscreen></iframe>`;
+  } else if (url.includes("streamable.com")) {
+    let id = url.split("/").pop();
+    c.innerHTML = `<iframe src="https://streamable.com/e/${id}" frameborder="0" allowfullscreen></iframe>`;
+  } else {
+    c.innerHTML = `<iframe src="${url}" frameborder="0" allowfullscreen></iframe>`;
+  }
 }
 
 // بدء المسابقة
-function start() {
-    let name = document.getElementById("playerName").value.trim();
-    if(name==="") return alert("اكتب اسمك");
-
-    if(answeredPlayers.includes(name)){
-        return alert("لقد أجبت مسبقًا. انتظر تغيير السؤال.");
-    }
-
-    if(!players[name]) players[name] = {score:0};
-
-    localStorage.setItem("currentPlayer", name);
-
-    document.getElementById("nameStep").style.display="none";
-    document.getElementById("questionStep").style.display="block";
+function start(){
+  let name = document.getElementById("playerName").value.trim();
+  if (!name) return alert("اكتب اسمك");
+  if (answered.includes(name)) return alert("لقد شاركت بالفعل في هذا السؤال");
+  document.getElementById("nameStep").style.display = "none";
+  document.getElementById("questionStep").style.display = "block";
+  localStorage.setItem("currentPlayer", name);
 }
 
 // إرسال الإجابة
-function submitAnswer() {
-    let name = localStorage.getItem("currentPlayer");
-    let ans = document.getElementById("answerInput").value.trim();
+function submitAnswer(){
+  let name = localStorage.getItem("currentPlayer");
+  let ans = document.getElementById("answerInput").value.trim();
+  let earned = (ans === correctAnswer ? 3 : 0);
+  players[name] = { score: (players[name]?.score || 0) + earned };
+  answered.push(name);
 
-    let earned = (ans == answer ? 3 : 0);
-    players[name].score += earned;
-    localStorage.setItem("players", JSON.stringify(players));
+  db.ref('contest').set({
+    question,
+    answer: correctAnswer,
+    media,
+    players,
+    answered
+  });
 
-    answeredPlayers.push(name);
-    localStorage.setItem("answeredPlayers", JSON.stringify(answeredPlayers));
-
-    document.getElementById("questionStep").style.display="none";
-    document.getElementById("resultStep").style.display="block";
-    document.getElementById("playerScore").innerText = "نقاطك: " + players[name].score;
+  document.getElementById("questionStep").style.display = "none";
+  document.getElementById("resultStep").style.display = "block";
+  document.getElementById("playerScore").innerText = "نقاطك: " + players[name].score;
 }
 
 // لوحة المالك
 function showAdminLogin(){
-    document.getElementById("adminLogin").style.display="block";
+  document.getElementById("adminLogin").style.display = "block";
 }
-
 function adminCheck(){
-    if(document.getElementById("adminPass").value === "Dosary"){
-        showRanking();
-        document.getElementById("adminPanel").style.display="block";
-    } else {
-        alert("كلمة السر غلط");
-    }
+  if (document.getElementById("adminPass").value === "Dosary"){
+    showRanking();
+    document.getElementById("adminPanel").style.display = "block";
+  } else alert("كلمة السر خطأ");
 }
 
-// عرض الترتيب وأسماء كل من شارك
+// عرض الترتيب
 function showRanking(){
-    let list = document.getElementById("ranking");
-    list.innerHTML = "";
-    let sorted = Object.entries(players)
-        .sort((a,b)=>b[1].score - a[1].score);
-    sorted.forEach(p=>{
-        let li = document.createElement("li");
-        li.innerText = p[0] + " : " + p[1].score + " نقاط";
-        list.appendChild(li);
+  let list = document.getElementById("ranking");
+  list.innerHTML = "";
+  Object.entries(players)
+    .sort((a,b)=> b[1].score - a[1].score)
+    .forEach(p=>{
+      let li = document.createElement("li");
+      li.innerText = p[0] + " : " + p[1].score + " نقاط";
+      list.appendChild(li);
     });
 }
 
 // تحديث السؤال
 function updateQuestion(){
-    let q = document.getElementById("newQuestion").value.trim();
-    let a = document.getElementById("newAnswer").value.trim();
-    let m = document.getElementById("newMedia").value.trim();
-    if(!q || !a) return alert("اكتب السؤال والإجابة");
-
-    localStorage.setItem("qText", q);
-    localStorage.setItem("qAns", a);
-    localStorage.setItem("qMedia", m);
-
-    answeredPlayers = [];
-    localStorage.setItem("answeredPlayers", "[]");
-
-    alert("تم تحديث السؤال بنجاح");
-    location.reload();
+  let q = document.getElementById("newQuestion").value.trim();
+  let a = document.getElementById("newAnswer").value.trim();
+  let m = document.getElementById("newMedia").value.trim();
+  if (!q || !a) return alert("اكتب السؤال والإجابة");
+  question = q;
+  correctAnswer = a;
+  media = m;
+  players = {};
+  answered = [];
+  db.ref('contest').set({ question, answer: correctAnswer, media, players, answered });
+  alert("تم تحديث السؤال!");
+  location.reload();
 }
 
 // تصفير النقاط
 function resetPoints(){
-    if(confirm("هل تريد تصفير النقاط؟")){
-        for(let name in players){ players[name].score = 0; }
-        localStorage.setItem("players", JSON.stringify(players));
-        showRanking();
-        alert("تم التصفير");
-    }
+  Object.keys(players).forEach(name => players[name].score = 0);
+  db.ref('contest/players').set(players);
+  alert("تم تصفير النقاط");
 }
 
 // حذف المشتركين
 function deletePlayers(){
-    if(confirm("هل تريد حذف جميع المشتركين؟")){
-        players = {};
-        answeredPlayers = [];
-        localStorage.removeItem("players");
-        localStorage.removeItem("answeredPlayers");
-        alert("تم الحذف");
-        location.reload();
-    }
+  db.ref('contest').set({ question, answer: correctAnswer, media, players: {}, answered: [] });
+  alert("تم حذف المشتركين");
+  location.reload();
 }
 </script>
 
