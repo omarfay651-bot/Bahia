@@ -4,10 +4,14 @@
 <meta charset="UTF-8">
 <title>مسابقة</title>
 <style>
-body { font-family: Arial; background:#f4f4f4; padding:20px; }
-.box { background:white; padding:20px; border-radius:10px; width:400px; margin:auto; }
-input, button, textarea { width:100%; padding:10px; margin:10px 0; font-size:16px; }
-#adminPanel { margin-top:20px; padding:20px; background:#eee; display:none; }
+body { font-family: Arial; background:#000; color:#fff; padding:20px; }
+.box { background:#111; padding:20px; border-radius:10px; width:400px; margin:auto; }
+input, button, textarea { width:100%; padding:10px; margin:10px 0; font-size:16px; border-radius:5px; border:none; }
+input, textarea { background:#222; color:#fff; }
+button { background:#444; color:#fff; cursor:pointer; }
+button:hover { background:#666; }
+#adminPanel { margin-top:20px; padding:20px; background:#222; display:none; }
+#contestMedia iframe, #contestMedia img { border-radius:10px; }
 </style>
 </head>
 <body>
@@ -16,36 +20,31 @@ input, button, textarea { width:100%; padding:10px; margin:10px 0; font-size:16p
 
     <h2>المسابقة</h2>
 
-    <!-- خطوة إدخال الاسم -->
     <div id="nameStep">
         <label>ادخل اسمك:</label>
         <input type="text" id="playerName">
         <button onclick="start()">ابدأ</button>
     </div>
 
-    <!-- خطوة السؤال -->
     <div id="questionStep" style="display:none;">
         <h3>السؤال:</h3>
         <div id="contestMedia"></div>
-        <p id="questionText">ما هو حاصل 2 + 2 ؟</p>
+        <p id="questionText"></p>
         <input type="text" id="answerInput" placeholder="اكتب إجابتك">
         <button onclick="submitAnswer()">إرسال الإجابة</button>
     </div>
 
-    <!-- نتيجة اللاعب -->
     <div id="resultStep" style="display:none;">
         <h3>تم تسجيل إجابتك</h3>
         <p id="playerScore"></p>
         <button onclick="showAdminLogin()">للمالك فقط</button>
     </div>
 
-    <!-- تسجيل دخول المالك -->
     <div id="adminLogin" style="display:none;">
         <input type="password" id="adminPass" placeholder="ادخل كلمة السر">
         <button onclick="adminCheck()">دخول</button>
     </div>
 
-    <!-- لوحة الإدارة -->
     <div id="adminPanel">
         <h3>ترتيب المشتركين</h3>
         <ol id="ranking"></ol>
@@ -55,17 +54,19 @@ input, button, textarea { width:100%; padding:10px; margin:10px 0; font-size:16p
         <input type="text" id="newAnswer" placeholder="الإجابة الصحيحة الجديدة">
         <input type="text" id="newMedia" placeholder="رابط صورة/فيديو/يوتيوب/Streamable">
         <button onclick="updateQuestion()">تحديث السؤال</button>
+        <button onclick="resetPoints()">تصفير جميع النقاط</button>
     </div>
 
 </div>
 
 <script>
-// تحميل البيانات
+// بيانات اللاعبين
 let players = JSON.parse(localStorage.getItem("players") || "{}");
 let question = localStorage.getItem("qText") || "ما هو حاصل 2 + 2 ؟";
 let answer = localStorage.getItem("qAns") || "4";
 let media = localStorage.getItem("qMedia") || "https://via.placeholder.com/350";
 
+// تحديث السؤال والوسائط عند تحميل الصفحة
 updateMediaDisplay(media);
 document.getElementById("questionText").innerText = question;
 
@@ -73,7 +74,7 @@ document.getElementById("questionText").innerText = question;
 function updateMediaDisplay(url){
     let container = document.getElementById("contestMedia");
     if(url.includes(".jpg") || url.includes(".png") || url.includes(".jpeg")){
-        container.innerHTML = `<img src="${url}" width="100%" style="border-radius:10px;">`;
+        container.innerHTML = `<img src="${url}" width="100%">`;
     } else if(url.includes("youtube.com") || url.includes("youtu.be")){
         let id = url.split("v=")[1] || url.split("youtu.be/")[1];
         container.innerHTML = `<iframe src="https://www.youtube.com/embed/${id}" width="100%" height="300" frameborder="0" allowfullscreen></iframe>`;
@@ -86,7 +87,7 @@ function updateMediaDisplay(url){
 function start() {
     let name = document.getElementById("playerName").value.trim();
     if(name==="") return alert("اكتب اسمك");
-    if(players[name]) return alert("لقد شاركت بالفعل، انتظر السؤال القادم.");
+    if(!players[name]) players[name] = {score:0};
     localStorage.setItem("currentPlayer", name);
     document.getElementById("nameStep").style.display="none";
     document.getElementById("questionStep").style.display="block";
@@ -96,12 +97,13 @@ function start() {
 function submitAnswer() {
     let name = localStorage.getItem("currentPlayer");
     let ans = document.getElementById("answerInput").value.trim();
-    let score = (ans==answer?3:0);
-    players[name] = score;
+    let earnedPoints = (ans==answer ? 3 : 0);
+    if(!players[name]) players[name]={score:0};
+    players[name].score += earnedPoints;
     localStorage.setItem("players", JSON.stringify(players));
     document.getElementById("questionStep").style.display="none";
     document.getElementById("resultStep").style.display="block";
-    document.getElementById("playerScore").innerText = "نقاطك: "+score;
+    document.getElementById("playerScore").innerText = "نقاطك: "+players[name].score;
 }
 
 // لوحة المالك
@@ -115,10 +117,10 @@ function adminCheck(){
 // عرض الترتيب
 function showRanking(){
     let list=document.getElementById("ranking"); list.innerHTML="";
-    let sorted=Object.entries(players).sort((a,b)=>b[1]-a[1]);
+    let sorted=Object.entries(players).sort((a,b)=>b[1].score-a[1].score);
     sorted.forEach(p=>{
         let li=document.createElement("li");
-        li.innerText=p[0]+" : "+p[1]+" نقاط";
+        li.innerText=p[0]+" : "+p[1].score+" نقاط";
         list.appendChild(li);
     });
 }
@@ -132,9 +134,20 @@ function updateQuestion(){
     localStorage.setItem("qText", q);
     localStorage.setItem("qAns", a);
     localStorage.setItem("qMedia", m || "https://via.placeholder.com/350");
-    localStorage.removeItem("players"); players={};
-    alert("تم تحديث السؤال والوسائط وتمكين المشتركين من المشاركة من جديد");
+    alert("تم تحديث السؤال والوسائط بنجاح");
     location.reload();
+}
+
+// تصفير جميع النقاط يدويًا
+function resetPoints(){
+    if(confirm("هل تريد حقًا تصفير جميع النقاط؟")){
+        for(let name in players){
+            players[name].score = 0;
+        }
+        localStorage.setItem("players", JSON.stringify(players));
+        showRanking();
+        alert("تم تصفير جميع النقاط");
+    }
 }
 </script>
 
