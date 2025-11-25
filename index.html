@@ -83,13 +83,13 @@ button:hover { background: #666; }
 </div>
 
 <script>
-// قاعدة بيانات المشتركين على localStorage
+// قاعدة بيانات المشتركين
 let players = JSON.parse(localStorage.getItem("players") || "{}");
 let answeredPlayers = JSON.parse(localStorage.getItem("answeredPlayers") || "[]");
 
-// السؤال والوسائط
-let question = localStorage.getItem("qText") || "ما هو حاصل 2 + 2 ؟";
-let answer = localStorage.getItem("qAns") || "4";
+// السؤال والوسائط الافتراضية
+let question = localStorage.getItem("qText") || "في أي عام هذه التلاوة؟";
+let answer = localStorage.getItem("qAns") || ""; // ضع الإجابة الصحيحة هنا إذا أحببت
 let media = localStorage.getItem("qMedia") || "https://streamable.com/azvrbo";
 
 // عرض السؤال والوسائط
