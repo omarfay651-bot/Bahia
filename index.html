@@ -28,15 +28,8 @@ input, button, textarea {
     border-radius: 5px;
     border: none;
 }
-input, textarea {
-    background: #222;
-    color: #fff;
-}
-button {
-    background: #444;
-    color: #fff;
-    cursor: pointer;
-}
+input, textarea { background: #222; color: #fff; }
+button { background: #444; color: #fff; cursor: pointer; }
 button:hover { background: #666; }
 #adminPanel { margin-top: 20px; padding: 20px; background: #222; display: none; }
 #contestMedia iframe, #contestMedia img { border-radius: 10px; width: 100%; }
@@ -83,11 +76,10 @@ button:hover { background: #666; }
         <input type="text" id="newMedia" placeholder="رابط صورة/يوتيوب/Streamable">
         <button onclick="updateQuestion()">تحديث السؤال</button>
 
-        <h3>حذف مشترك محدد</h3>
-        <input type="text" id="deletePlayerName" placeholder="اسم المشترك">
-        <button onclick="deleteSinglePlayer()">حذف المشترك</button>
-
+        <h3>إدارة النقاط والمشتركين</h3>
         <button onclick="resetPoints()">تصفير جميع النقاط</button>
+        <input type="text" id="deletePlayerName" placeholder="اسم المشترك للحذف">
+        <button onclick="deleteSinglePlayer()">حذف مشترك محدد</button>
         <button onclick="deletePlayers()">حذف جميع المشتركين</button>
     </div>
 
@@ -111,15 +103,13 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
+// بيانات النظام
 let currentPlayer = null;
 
 // عرض الوسائط
 function updateMediaDisplay(url){
     let container = document.getElementById("contestMedia");
-    if(!url || url.trim()===""){
-        container.innerHTML = "";
-        return;
-    }
+    if(!url || url.trim()===""){ container.innerHTML = ""; return; }
     if(url.match(/\.(jpg|png|jpeg|gif)$/)){
         container.innerHTML = `<img src="${url}">`;
     } else if(url.includes("youtube.com") || url.includes("youtu.be")){
@@ -153,9 +143,9 @@ window.start = function() {
 // إرسال الإجابة
 window.submitAnswer = function(){
     let ans = document.getElementById("answerInput").value.trim();
-    let earned = (ans == "2025" ? 3 : 0); // إجابة مثال
     get(child(ref(db), `players/${currentPlayer}/score`)).then((snapshot)=>{
         let prevScore = snapshot.exists() ? snapshot.val() : 0;
+        let earned = (ans == "2025" ? 3 : 0); // مثال للإجابة الصحيحة
         update(ref(db, `players/${currentPlayer}`), {score: prevScore + earned});
         set(ref(db, `answered/${currentPlayer}`), true);
         document.getElementById("questionStep").style.display="none";
@@ -165,10 +155,7 @@ window.submitAnswer = function(){
 }
 
 // لوحة المالك
-window.showAdminLogin = function(){
-    document.getElementById("adminLogin").style.display="block";
-}
-
+window.showAdminLogin = function(){ document.getElementById("adminLogin").style.display="block"; }
 window.adminCheck = function(){
     if(document.getElementById("adminPass").value === "Dosary"){
         showRanking();
@@ -176,13 +163,13 @@ window.adminCheck = function(){
     } else { alert("كلمة السر غلط"); }
 }
 
+// عرض الترتيب
 window.showRanking = function(){
     get(child(ref(db), `players`)).then((snapshot)=>{
-        let list = document.getElementById("ranking");
-        list.innerHTML="";
+        let list = document.getElementById("ranking"); list.innerHTML="";
         if(snapshot.exists()){
             let data = snapshot.val();
-            Object.entries(data).sort((a,b)=>b[1].score-a[1].score)
+            Object.entries(data).sort((a,b)=>b[1].score - a[1].score)
             .forEach(p=>{
                 let li = document.createElement("li");
                 li.innerText = p[0]+" : "+p[1].score+" نقاط";
@@ -192,7 +179,7 @@ window.showRanking = function(){
     });
 }
 
-// تغيير السؤال
+// تحديث السؤال
 window.updateQuestion = function(){
     let q = document.getElementById("newQuestion").value.trim();
     let a = document.getElementById("newAnswer").value.trim();
@@ -241,7 +228,6 @@ window.deleteSinglePlayer = function(){
     alert(`تم حذف المشترك ${delName}`);
     showRanking();
 }
-
 </script>
 
 </body>
