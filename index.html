@@ -80,10 +80,13 @@ button:hover { background: #666; }
         <h3>تغيير السؤال</h3>
         <textarea id="newQuestion" style="width:100%; height:80px;"></textarea>
         <input type="text" id="newAnswer" placeholder="الإجابة الصحيحة الجديدة">
-        <input type="text" id="newMedia" placeholder="رابط صورة/يوتيوب/Streamable/Vimeo">
+        <input type="text" id="newMedia" placeholder="رابط صورة/يوتيوب/Streamable">
         <button onclick="updateQuestion()">تحديث السؤال</button>
         <button onclick="resetPoints()">تصفير جميع النقاط</button>
         <button onclick="deletePlayers()">حذف جميع المشتركين</button>
+        <h3>حذف مشترك محدد</h3>
+        <input type="text" id="deletePlayerName" placeholder="اسم المشترك">
+        <button onclick="deleteSinglePlayer()">حذف المشترك</button>
     </div>
 
 </div>
@@ -91,7 +94,7 @@ button:hover { background: #666; }
 <script type="module">
 // Firebase SDK
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getDatabase, ref, set, get, child, update } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+import { getDatabase, ref, set, get, child, update, remove } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBFv34RKK0gUg8-E1DA-mWorXwHpVTB2yc",
@@ -106,41 +109,22 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// بيانات النظام
 let currentPlayer = null;
 
-// عرض الوسائط (مُعدّل ليشمل Vimeo)
+// عرض الوسائط
 function updateMediaDisplay(url){
     let container = document.getElementById("contestMedia");
-
-    if(!url || url.trim()===""){
-        container.innerHTML = "";
-        return;
-    }
-
-    // صورة
-    if(url.match(/\.(jpg|png|jpeg|gif)$/)){
-        container.innerHTML = `<img src="${url}">`;
-    } 
-    // YouTube
+    if(!url || url.trim()===""){ container.innerHTML = ""; return; }
+    if(url.match(/\.(jpg|png|jpeg|gif)$/)){ container.innerHTML = `<img src="${url}">`; }
     else if(url.includes("youtube.com") || url.includes("youtu.be")){
         let id = url.split("v=")[1] || url.split("youtu.be/")[1];
         container.innerHTML = `<iframe src="https://www.youtube.com/embed/${id}" height="300" frameborder="0" allowfullscreen></iframe>`;
     }
-    // Streamable
     else if(url.includes("streamable.com")){
         let id = url.split("/").pop();
         container.innerHTML = `<iframe src="https://streamable.com/e/${id}" height="300" frameborder="0" allowfullscreen></iframe>`;
     }
-    // Vimeo
-    else if(url.includes("vimeo.com")){
-        let id = url.split("/").pop().split("?")[0];
-        container.innerHTML = `<iframe src="https://player.vimeo.com/video/${id}" height="300" frameborder="0" allowfullscreen></iframe>`;
-    }
-    // أي رابط آخر
-    else {
-        container.innerHTML = `<iframe src="${url}" height="300" frameborder="0" allowfullscreen></iframe>`;
-    }
+    else { container.innerHTML = `<iframe src="${url}" height="300" frameborder="0" allowfullscreen></iframe>`; }
 }
 
 // بدء المسابقة
@@ -150,54 +134,31 @@ window.start = function() {
     currentPlayer = name;
 
     get(child(ref(db), `answered/${name}`)).then((snapshot)=>{
-        if(snapshot.exists()){
-            alert("لقد أجبت مسبقًا. انتظر تغيير السؤال.");
-        } else {
+        if(snapshot.exists()){ alert("لقد أجبت مسبقًا. انتظر تغيير السؤال."); }
+        else{
             set(ref(db, `players/${name}`), {score: 0});
             document.getElementById("nameStep").style.display="none";
             document.getElementById("questionStep").style.display="block";
-
-            // تحميل السؤال الحالي
-            loadLiveQuestion();
         }
-    });
-}
-
-// تحميل السؤال الحالي مباشرة من Firebase
-function loadLiveQuestion(){
-    get(child(ref(db), "currentQuestion")).then(q=>{
-        if(q.exists()) document.getElementById("questionText").innerText = q.val();
-    });
-    get(child(ref(db), "currentMedia")).then(m=>{
-        if(m.exists()) updateMediaDisplay(m.val());
     });
 }
 
 // إرسال الإجابة
 window.submitAnswer = function(){
     let ans = document.getElementById("answerInput").value.trim();
-
-    get(child(ref(db), "currentAnswer")).then(correct=>{
-        let earned = (ans === correct.val() ? 3 : 0);
-
-        get(child(ref(db), `players/${currentPlayer}/score`)).then((snapshot)=>{
-            let prevScore = snapshot.exists() ? snapshot.val() : 0;
-
-            update(ref(db, `players/${currentPlayer}`), {score: prevScore + earned});
-            set(ref(db, `answered/${currentPlayer}`), true);
-
-            document.getElementById("questionStep").style.display="none";
-            document.getElementById("resultStep").style.display="block";
-            document.getElementById("playerScore").innerText = "نقاطك: " + (prevScore + earned);
-        });
+    let earned = (ans == "2025" ? 3 : 0);
+    get(child(ref(db), `players/${currentPlayer}/score`)).then((snapshot)=>{
+        let prevScore = snapshot.exists() ? snapshot.val() : 0;
+        update(ref(db, `players/${currentPlayer}`), {score: prevScore + earned});
+        set(ref(db, `answered/${currentPlayer}`), true);
+        document.getElementById("questionStep").style.display="none";
+        document.getElementById("resultStep").style.display="block";
+        document.getElementById("playerScore").innerText = "نقاطك: " + (prevScore + earned);
     });
 }
 
 // لوحة المالك
-window.showAdminLogin = function(){
-    document.getElementById("adminLogin").style.display="block";
-}
-
+window.showAdminLogin = function(){ document.getElementById("adminLogin").style.display="block"; }
 window.adminCheck = function(){
     if(document.getElementById("adminPass").value === "Dosary"){
         showRanking();
@@ -205,6 +166,7 @@ window.adminCheck = function(){
     } else { alert("كلمة السر غلط"); }
 }
 
+// عرض الترتيب
 window.showRanking = function(){
     get(child(ref(db), `players`)).then((snapshot)=>{
         let list = document.getElementById("ranking");
@@ -226,16 +188,13 @@ window.updateQuestion = function(){
     let q = document.getElementById("newQuestion").value.trim();
     let a = document.getElementById("newAnswer").value.trim();
     let m = document.getElementById("newMedia").value.trim();
-
     if(!q || !a) return alert("اكتب السؤال والإجابة");
-
     update(ref(db), {
         currentQuestion: q,
         currentAnswer: a,
         currentMedia: m,
         answered: {}
     });
-
     alert("تم تحديث السؤال بنجاح");
 }
 
@@ -254,7 +213,7 @@ window.resetPoints = function(){
     }
 }
 
-// حذف المشتركين
+// حذف جميع المشتركين
 window.deletePlayers = function(){
     if(confirm("هل تريد حذف جميع المشتركين؟")){
         set(ref(db, `players`), {});
@@ -262,6 +221,16 @@ window.deletePlayers = function(){
         alert("تم الحذف");
         location.reload();
     }
+}
+
+// حذف مشترك محدد
+window.deleteSinglePlayer = function(){
+    let delName = document.getElementById("deletePlayerName").value.trim();
+    if(delName==="") return alert("اكتب اسم المشترك");
+    remove(ref(db, `players/${delName}`));
+    remove(ref(db, `answered/${delName}`));
+    alert(`تم حذف المشترك ${delName}`);
+    showRanking();
 }
 
 </script>
