@@ -73,7 +73,7 @@ button:hover { background: #666; }
         <h3>تغيير السؤال</h3>
         <textarea id="newQuestion" style="width:100%; height:80px;"></textarea>
         <input type="text" id="newAnswer" placeholder="الإجابة الصحيحة الجديدة">
-        <input type="text" id="newMedia" placeholder="رابط صورة/يوتيوب/Streamable">
+        <input type="text" id="newMedia" placeholder="رابط صورة/YouTube/Streamable/Vimeo">
         <button onclick="updateQuestion()">تحديث السؤال</button>
 
         <h3>إدارة النقاط والمشتركين</h3>
@@ -103,21 +103,33 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// بيانات النظام
 let currentPlayer = null;
 
 // عرض الوسائط
 function updateMediaDisplay(url){
     let container = document.getElementById("contestMedia");
     if(!url || url.trim()===""){ container.innerHTML = ""; return; }
+
+    // صورة
     if(url.match(/\.(jpg|png|jpeg|gif)$/)){
         container.innerHTML = `<img src="${url}">`;
+
+    // YouTube
     } else if(url.includes("youtube.com") || url.includes("youtu.be")){
         let id = url.split("v=")[1] || url.split("youtu.be/")[1];
         container.innerHTML = `<iframe src="https://www.youtube.com/embed/${id}" height="300" frameborder="0" allowfullscreen></iframe>`;
+
+    // Streamable
     } else if(url.includes("streamable.com")){
         let id = url.split("/").pop();
         container.innerHTML = `<iframe src="https://streamable.com/e/${id}" height="300" frameborder="0" allowfullscreen></iframe>`;
+
+    // Vimeo
+    } else if(url.includes("vimeo.com")){
+        let id = url.split("/").pop();
+        container.innerHTML = `<iframe src="https://player.vimeo.com/video/${id}" height="300" frameborder="0" allowfullscreen></iframe>`;
+
+    // أي فيديو آخر
     } else {
         container.innerHTML = `<iframe src="${url}" height="300" frameborder="0" allowfullscreen></iframe>`;
     }
@@ -191,6 +203,8 @@ window.updateQuestion = function(){
         currentMedia: m,
         answered: {}
     });
+    updateMediaDisplay(m);
+    document.getElementById("questionText").innerText = q;
     alert("تم تحديث السؤال بنجاح");
 }
 
