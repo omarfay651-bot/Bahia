@@ -80,7 +80,7 @@ button:hover { background: #666; }
         <h3>تغيير السؤال</h3>
         <textarea id="newQuestion" style="width:100%; height:80px;"></textarea>
         <input type="text" id="newAnswer" placeholder="الإجابة الصحيحة الجديدة">
-        <input type="text" id="newMedia" placeholder="رابط صورة/يوتيوب/Streamable">
+        <input type="text" id="newMedia" placeholder="رابط صورة/يوتيوب/Streamable/Vimeo">
         <button onclick="updateQuestion()">تحديث السؤال</button>
         <button onclick="resetPoints()">تصفير جميع النقاط</button>
         <button onclick="deletePlayers()">حذف جميع المشتركين</button>
@@ -108,24 +108,37 @@ const db = getDatabase(app);
 
 // بيانات النظام
 let currentPlayer = null;
-let answeredPlayers = [];
 
-// عرض الوسائط
+// عرض الوسائط (مُعدّل ليشمل Vimeo)
 function updateMediaDisplay(url){
     let container = document.getElementById("contestMedia");
+
     if(!url || url.trim()===""){
         container.innerHTML = "";
         return;
     }
+
+    // صورة
     if(url.match(/\.(jpg|png|jpeg|gif)$/)){
         container.innerHTML = `<img src="${url}">`;
-    } else if(url.includes("youtube.com") || url.includes("youtu.be")){
+    } 
+    // YouTube
+    else if(url.includes("youtube.com") || url.includes("youtu.be")){
         let id = url.split("v=")[1] || url.split("youtu.be/")[1];
         container.innerHTML = `<iframe src="https://www.youtube.com/embed/${id}" height="300" frameborder="0" allowfullscreen></iframe>`;
-    } else if(url.includes("streamable.com")){
+    }
+    // Streamable
+    else if(url.includes("streamable.com")){
         let id = url.split("/").pop();
         container.innerHTML = `<iframe src="https://streamable.com/e/${id}" height="300" frameborder="0" allowfullscreen></iframe>`;
-    } else {
+    }
+    // Vimeo
+    else if(url.includes("vimeo.com")){
+        let id = url.split("/").pop().split("?")[0];
+        container.innerHTML = `<iframe src="https://player.vimeo.com/video/${id}" height="300" frameborder="0" allowfullscreen></iframe>`;
+    }
+    // أي رابط آخر
+    else {
         container.innerHTML = `<iframe src="${url}" height="300" frameborder="0" allowfullscreen></iframe>`;
     }
 }
@@ -143,21 +156,40 @@ window.start = function() {
             set(ref(db, `players/${name}`), {score: 0});
             document.getElementById("nameStep").style.display="none";
             document.getElementById("questionStep").style.display="block";
+
+            // تحميل السؤال الحالي
+            loadLiveQuestion();
         }
+    });
+}
+
+// تحميل السؤال الحالي مباشرة من Firebase
+function loadLiveQuestion(){
+    get(child(ref(db), "currentQuestion")).then(q=>{
+        if(q.exists()) document.getElementById("questionText").innerText = q.val();
+    });
+    get(child(ref(db), "currentMedia")).then(m=>{
+        if(m.exists()) updateMediaDisplay(m.val());
     });
 }
 
 // إرسال الإجابة
 window.submitAnswer = function(){
     let ans = document.getElementById("answerInput").value.trim();
-    let earned = (ans == "2025" ? 3 : 0); // إجابة مثال
-    get(child(ref(db), `players/${currentPlayer}/score`)).then((snapshot)=>{
-        let prevScore = snapshot.exists() ? snapshot.val() : 0;
-        update(ref(db, `players/${currentPlayer}`), {score: prevScore + earned});
-        set(ref(db, `answered/${currentPlayer}`), true);
-        document.getElementById("questionStep").style.display="none";
-        document.getElementById("resultStep").style.display="block";
-        document.getElementById("playerScore").innerText = "نقاطك: " + (prevScore + earned);
+
+    get(child(ref(db), "currentAnswer")).then(correct=>{
+        let earned = (ans === correct.val() ? 3 : 0);
+
+        get(child(ref(db), `players/${currentPlayer}/score`)).then((snapshot)=>{
+            let prevScore = snapshot.exists() ? snapshot.val() : 0;
+
+            update(ref(db, `players/${currentPlayer}`), {score: prevScore + earned});
+            set(ref(db, `answered/${currentPlayer}`), true);
+
+            document.getElementById("questionStep").style.display="none";
+            document.getElementById("resultStep").style.display="block";
+            document.getElementById("playerScore").innerText = "نقاطك: " + (prevScore + earned);
+        });
     });
 }
 
@@ -194,13 +226,16 @@ window.updateQuestion = function(){
     let q = document.getElementById("newQuestion").value.trim();
     let a = document.getElementById("newAnswer").value.trim();
     let m = document.getElementById("newMedia").value.trim();
+
     if(!q || !a) return alert("اكتب السؤال والإجابة");
+
     update(ref(db), {
         currentQuestion: q,
         currentAnswer: a,
         currentMedia: m,
         answered: {}
     });
+
     alert("تم تحديث السؤال بنجاح");
 }
 
