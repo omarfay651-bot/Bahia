@@ -6,7 +6,8 @@
 <style>
 body {
     font-family: Arial;
-    background: #000;
+    background: url("https://i.imgur.com/EXAMPLE.jpg") no-repeat center center fixed; /* ضع هنا رابط الصورة المستخرجة */
+    background-size: cover;
     color: #fff;
     height: 100vh;
     display: flex;
@@ -15,7 +16,7 @@ body {
     margin: 0;
 }
 .box {
-    background: #111;
+    background: rgba(17,17,17,0.85);
     padding: 20px;
     border-radius: 10px;
     width: 400px;
@@ -80,7 +81,7 @@ button:hover { background: #666; }
         <h3>تغيير السؤال</h3>
         <textarea id="newQuestion" style="width:100%; height:80px;"></textarea>
         <input type="text" id="newAnswer" placeholder="الإجابة الصحيحة الجديدة">
-        <input type="text" id="newMedia" placeholder="رابط صورة/YouTube/Streamable/Vimeo">
+        <input type="text" id="newMedia" placeholder="رابط صورة/يوتيوب/Streamable">
         <button onclick="updateQuestion()">تحديث السؤال</button>
         <button onclick="resetPoints()">تصفير جميع النقاط</button>
         <button onclick="deletePlayers()">حذف جميع المشتركين</button>
@@ -108,40 +109,18 @@ const db = getDatabase(app);
 
 let currentPlayer = null;
 
-// عرض الوسائط (صور، YouTube، Streamable، Vimeo)
+// عرض الوسائط
 function updateMediaDisplay(url){
     let container = document.getElementById("contestMedia");
-    if(!url || url.trim()===""){
-        container.innerHTML = "";
-        return;
-    }
-    // صورة
-    if(url.match(/\.(jpg|png|jpeg|gif)$/)){
-        container.innerHTML = `<img src="${url}">`;
-    }
-    // YouTube
+    if(!url || url.trim()===""){ container.innerHTML = ""; return; }
+    if(url.match(/\.(jpg|png|jpeg|gif)$/)){ container.innerHTML = `<img src="${url}">`; }
     else if(url.includes("youtube.com") || url.includes("youtu.be")){
         let id = url.split("v=")[1] || url.split("youtu.be/")[1];
         container.innerHTML = `<iframe src="https://www.youtube.com/embed/${id}" height="300" frameborder="0" allowfullscreen></iframe>`;
-    }
-    // Streamable
-    else if(url.includes("streamable.com")){
+    } else if(url.includes("streamable.com")){
         let id = url.split("/").pop();
         container.innerHTML = `<iframe src="https://streamable.com/e/${id}" height="300" frameborder="0" allowfullscreen></iframe>`;
-    }
-    // Vimeo
-    else if(url.includes("vimeo.com")){
-        let match = url.match(/vimeo\.com\/(\d+)/);
-        if(match){
-            let id = match[1];
-            container.innerHTML = `<iframe src="https://player.vimeo.com/video/${id}" height="300" frameborder="0" allowfullscreen></iframe>`;
-        } else {
-            container.innerHTML = `الرابط غير صالح`;
-        }
-    }
-    else{
-        container.innerHTML = `<iframe src="${url}" height="300" frameborder="0" allowfullscreen></iframe>`;
-    }
+    } else { container.innerHTML = `<iframe src="${url}" height="300" frameborder="0" allowfullscreen></iframe>`; }
 }
 
 // بدء المسابقة
@@ -154,17 +133,11 @@ window.start = function() {
         if(snapshot.exists()){
             alert("لقد أجبت مسبقًا. انتظر تغيير السؤال.");
         } else {
-            set(ref(db, `players/${name}`), {score: 0});
-            get(child(ref(db), `currentMedia`)).then((snap)=>{
-                let media = snap.exists() ? snap.val() : "";
-                updateMediaDisplay(media);
+            get(child(ref(db), `players/${name}`)).then(snap=>{
+                if(!snap.exists()){ set(ref(db, `players/${name}`), {score: 0}); }
+                document.getElementById("nameStep").style.display="none";
+                document.getElementById("questionStep").style.display="block";
             });
-            get(child(ref(db), `currentQuestion`)).then((snap)=>{
-                let q = snap.exists() ? snap.val() : "في أي عام هذه التلاوة؟";
-                document.getElementById("questionText").innerText = q;
-            });
-            document.getElementById("nameStep").style.display="none";
-            document.getElementById("questionStep").style.display="block";
         }
     });
 }
@@ -172,24 +145,19 @@ window.start = function() {
 // إرسال الإجابة
 window.submitAnswer = function(){
     let ans = document.getElementById("answerInput").value.trim();
-    get(child(ref(db), `currentAnswer`)).then((snap)=>{
-        let correctAns = snap.exists() ? snap.val() : "2025";
-        let earned = (ans == correctAns ? 3 : 0);
-        get(child(ref(db), `players/${currentPlayer}/score`)).then((snapshot)=>{
-            let prevScore = snapshot.exists() ? snapshot.val() : 0;
-            update(ref(db, `players/${currentPlayer}`), {score: prevScore + earned});
-            set(ref(db, `answered/${currentPlayer}`), true);
-            document.getElementById("questionStep").style.display="none";
-            document.getElementById("resultStep").style.display="block";
-            document.getElementById("playerScore").innerText = "نقاطك: " + (prevScore + earned);
-        });
+    let earned = (ans == "2025" ? 3 : 0); // إجابة مثال
+    get(child(ref(db), `players/${currentPlayer}/score`)).then((snapshot)=>{
+        let prevScore = snapshot.exists() ? snapshot.val() : 0;
+        update(ref(db, `players/${currentPlayer}`), {score: prevScore + earned});
+        set(ref(db, `answered/${currentPlayer}`), true);
+        document.getElementById("questionStep").style.display="none";
+        document.getElementById("resultStep").style.display="block";
+        document.getElementById("playerScore").innerText = "نقاطك: " + (prevScore + earned);
     });
 }
 
 // لوحة المالك
-window.showAdminLogin = function(){
-    document.getElementById("adminLogin").style.display="block";
-}
+window.showAdminLogin = function(){ document.getElementById("adminLogin").style.display="block"; }
 
 window.adminCheck = function(){
     if(document.getElementById("adminPass").value === "Dosary"){
