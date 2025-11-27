@@ -6,7 +6,7 @@
 <style>
 body {
     font-family: Arial;
-    color: #fff;
+    color: black;
     height: 100vh;
     display: flex;
     justify-content: center;
@@ -17,32 +17,53 @@ body {
     background-position: center;
     background-repeat: no-repeat;
 }
+
 .box {
-    background: rgba(0,0,0,0.8);
+    background: #fffaf0; /* بيج فاتح جدًا */
     padding: 20px;
     border-radius: 10px;
     width: 400px;
+    border: 5px solid #8B4513; /* بني داكن */
+    color: black;
 }
-input, button, textarea {
+
+#nameStep, #questionStep, #resultStep, #adminLogin, #adminPanel {
+    padding: 10px;
+    border-radius: 10px;
+    border: 5px solid #8B4513;
+    background: #fffaf0;
+    margin-top: 10px;
+}
+
+input, textarea, button {
     width: 100%;
     padding: 10px;
     margin: 10px 0;
     font-size: 16px;
     border-radius: 5px;
-    border: none;
+    border: 5px solid #8B4513;
+    background: #fffaf0;
+    color: black;
 }
-input, textarea {
-    background: #222;
-    color: #fff;
+
+#nameStep button {
+    /* صندوق "ابدأ" مثل صندوق الاسم */
+    background: #fffaf0;
+    color: black;
+    border: 5px solid #8B4513;
+    font-weight: bold;
 }
-button {
-    background: #444;
-    color: #fff;
-    cursor: pointer;
+
+button:hover {
+    background: #fff4e6;
 }
-button:hover { background: #666; }
-#adminPanel { margin-top: 20px; padding: 20px; background: #222; display: none; }
-#contestMedia iframe, #contestMedia img { border-radius: 10px; width: 100%; }
+
+#contestMedia iframe,
+#contestMedia img { 
+    border-radius: 10px; 
+    width: 100%; 
+    border: 5px solid #8B4513;
+}
 </style>
 </head>
 <body>
@@ -76,7 +97,7 @@ button:hover { background: #666; }
         <button onclick="adminCheck()">دخول</button>
     </div>
 
-    <div id="adminPanel">
+    <div id="adminPanel" style="display:none;">
         <h3>ترتيب المشتركين</h3>
         <ol id="ranking"></ol>
 
@@ -96,7 +117,7 @@ button:hover { background: #666; }
 <script type="module">
 // Firebase SDK
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getDatabase, ref, set, get, child, update, remove } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+import { getDatabase, ref, set, get, child, update, remove, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBFv34RKK0gUg8-E1DA-mWorXwHpVTB2yc",
@@ -111,10 +132,22 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// بيانات النظام
 let currentPlayer = null;
 
-// عرض الوسائط
+// مراقبة السؤال والوسائط تلقائيًا
+const questionRef = ref(db, 'currentQuestion');
+const mediaRef = ref(db, 'currentMedia');
+
+onValue(questionRef, (snapshot) => {
+    const question = snapshot.val();
+    if(question) document.getElementById('questionText').innerText = question;
+});
+
+onValue(mediaRef, (snapshot) => {
+    const mediaUrl = snapshot.val();
+    if(mediaUrl) updateMediaDisplay(mediaUrl);
+});
+
 function updateMediaDisplay(url){
     let container = document.getElementById("contestMedia");
     if(!url || url.trim()===""){ container.innerHTML = ""; return; }
@@ -134,7 +167,6 @@ function updateMediaDisplay(url){
     }
 }
 
-// بدء المسابقة
 window.start = function() {
     let name = document.getElementById("playerName").value.trim();
     if(name==="") return alert("اكتب اسمك");
@@ -151,7 +183,6 @@ window.start = function() {
     });
 }
 
-// إرسال الإجابة
 window.submitAnswer = function(){
     let ans = document.getElementById("answerInput").value.trim();
     get(child(ref(db), `players/${currentPlayer}/score`)).then((snapshot)=>{
@@ -165,7 +196,6 @@ window.submitAnswer = function(){
     });
 }
 
-// لوحة المالك
 window.showAdminLogin = function(){ document.getElementById("adminLogin").style.display="block"; }
 window.adminCheck = function(){
     if(document.getElementById("adminPass").value === "Dosary"){
@@ -190,7 +220,6 @@ window.showRanking = function(){
     });
 }
 
-// تغيير السؤال
 window.updateQuestion = function(){
     let q = document.getElementById("newQuestion").value.trim();
     let a = document.getElementById("newAnswer").value.trim();
@@ -205,7 +234,6 @@ window.updateQuestion = function(){
     alert("تم تحديث السؤال بنجاح");
 }
 
-// تصفير النقاط
 window.resetPoints = function(){
     if(confirm("هل تريد تصفير النقاط؟")){
         get(child(ref(db), `players`)).then(snapshot=>{
@@ -220,7 +248,6 @@ window.resetPoints = function(){
     }
 }
 
-// حذف المشتركين
 window.deletePlayers = function(){
     if(confirm("هل تريد حذف جميع المشتركين؟")){
         set(ref(db, `players`), {});
@@ -230,7 +257,6 @@ window.deletePlayers = function(){
     }
 }
 
-// حذف لاعب بعينه
 window.deleteSinglePlayer = function(){
     let name = document.getElementById("deletePlayerName").value.trim();
     if(name==="") return alert("اكتب اسم اللاعب");
