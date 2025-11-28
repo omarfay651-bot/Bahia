@@ -19,11 +19,11 @@ body {
 }
 
 .box {
-    background: #BBB8A5; /* بيج هادئ يشبه الحجر */
+    background: #BBB8A5;
     padding: 20px;
     border-radius: 10px;
     width: 400px;
-    border: 5px solid #8B4513; /* بني داكن */
+    border: 5px solid #8B4513;
     color: black;
 }
 
@@ -54,7 +54,7 @@ input, textarea, button {
 }
 
 button:hover {
-    background: #C7C3AF; /* hover أفتح شوي */
+    background: #C7C3AF;
 }
 
 #contestMedia iframe,
@@ -114,7 +114,6 @@ button:hover {
 </div>
 
 <script type="module">
-// Firebase SDK
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
 import { getDatabase, ref, set, get, child, update, remove, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
@@ -133,7 +132,6 @@ const db = getDatabase(app);
 
 let currentPlayer = null;
 
-// مراقبة السؤال والوسائط تلقائيًا
 const questionRef = ref(db, 'currentQuestion');
 const mediaRef = ref(db, 'currentMedia');
 
@@ -147,11 +145,10 @@ onValue(mediaRef, (snapshot) => {
     if(mediaUrl) updateMediaDisplay(mediaUrl);
 });
 
-// تعديل جزء Vimeo فقط
 function updateMediaDisplay(url){
     let container = document.getElementById("contestMedia");
     if(!url || url.trim()===""){ container.innerHTML = ""; return; }
-
+    
     if(url.match(/\.(jpg|png|jpeg|gif)$/)){
         container.innerHTML = `<img src="${url}">`;
     } 
@@ -164,9 +161,13 @@ function updateMediaDisplay(url){
         container.innerHTML = `<iframe src="https://streamable.com/e/${id}" height="300" frameborder="0" allowfullscreen></iframe>`;
     } 
     else if(url.includes("vimeo.com")){
-        // استخراج رقم الفيديو حتى لو كان الرابط فيه باراميتر
-        let id = url.split("/").pop().split("?")[0]; 
-        container.innerHTML = `<iframe src="https://player.vimeo.com/video/${id}" height="300" frameborder="0" allowfullscreen></iframe>`;
+        // استخراج رقم الفيديو حتى لو فيه ? أو #
+        let id = url.match(/vimeo\.com\/(\d+)/);
+        if(id && id[1]){
+            container.innerHTML = `<iframe src="https://player.vimeo.com/video/${id[1]}" height="300" frameborder="0" allowfullscreen></iframe>`;
+        } else {
+            container.innerHTML = `<iframe src="${url}" height="300" frameborder="0" allowfullscreen></iframe>`;
+        }
     } 
     else {
         container.innerHTML = `<iframe src="${url}" height="300" frameborder="0" allowfullscreen></iframe>`;
