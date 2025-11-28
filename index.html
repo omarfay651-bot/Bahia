@@ -195,15 +195,28 @@ window.start = function() {
 }
 
 window.submitAnswer = function(){
-    let ans = document.getElementById("answerInput").value.trim();
-    get(child(ref(db), `players/${currentPlayer}/score`)).then((snapshot)=>{
-        let prevScore = snapshot.exists() ? snapshot.val() : 0;
-        let earned = (ans == "2025" ? 3 : 0);
-        update(ref(db, `players/${currentPlayer}`), {score: prevScore + earned});
-        set(ref(db, `answered/${currentPlayer}`), true);
-        document.getElementById("questionStep").style.display="none";
-        document.getElementById("resultStep").style.display="block";
-        document.getElementById("playerScore").innerText = "نقاطك: " + (prevScore + earned);
+    let ans = document.getElementById("answerInput").value.trim().toLowerCase();
+
+    get(child(ref(db), `currentAnswer`)).then((snapshot)=>{
+        if(!snapshot.exists()){
+            alert("لا توجد إجابة مسجلة لهذا السؤال");
+            return;
+        }
+
+        let correct = snapshot.val().trim().toLowerCase();
+
+        let earned = (ans === correct ? 3 : 0);
+
+        get(child(ref(db), `players/${currentPlayer}/score`)).then((snap)=>{
+            let prevScore = snap.exists() ? snap.val() : 0;
+
+            update(ref(db, `players/${currentPlayer}`), {score: prevScore + earned});
+            set(ref(db, `answered/${currentPlayer}`), true);
+
+            document.getElementById("questionStep").style.display="none";
+            document.getElementById("resultStep").style.display="block";
+            document.getElementById("playerScore").innerText = "نقاطك: " + (prevScore + earned);
+        });
     });
 }
 
@@ -232,7 +245,6 @@ window.showRanking = function(){
     });
 }
 
-// تحديث السؤال والوسائط من قبل المالك وفتح السؤال
 window.updateQuestion = function(){
     let q = document.getElementById("newQuestion").value.trim();
     let a = document.getElementById("newAnswer").value.trim();
