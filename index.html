@@ -80,7 +80,7 @@ button:hover {
     <div id="questionStep" style="display:none;">
         <h3>السؤال:</h3>
         <div id="contestMedia"></div>
-        <p id="questionText">في أي عام هذه التلاوة؟</p>
+        <p id="questionText">السؤال سيتم عرضه بعد التفعيل من المالك</p>
         <input type="text" id="answerInput" placeholder="اكتب إجابتك">
         <button onclick="submitAnswer()">إرسال الإجابة</button>
     </div>
@@ -131,6 +131,7 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 let currentPlayer = null;
+let questionOpen = false;
 
 const questionRef = ref(db, 'currentQuestion');
 const mediaRef = ref(db, 'currentMedia');
@@ -148,7 +149,7 @@ onValue(mediaRef, (snapshot) => {
 function updateMediaDisplay(url){
     let container = document.getElementById("contestMedia");
     if(!url || url.trim()===""){ container.innerHTML = ""; return; }
-    
+
     if(url.match(/\.(jpg|png|jpeg|gif)$/)){
         container.innerHTML = `<img src="${url}">`;
     } 
@@ -161,10 +162,9 @@ function updateMediaDisplay(url){
         container.innerHTML = `<iframe src="https://streamable.com/e/${id}" height="300" frameborder="0" allowfullscreen></iframe>`;
     } 
     else if(url.includes("vimeo.com")){
-        // استخراج رقم الفيديو حتى لو فيه ? أو #
-        let id = url.match(/vimeo\.com\/(\d+)/);
-        if(id && id[1]){
-            container.innerHTML = `<iframe src="https://player.vimeo.com/video/${id[1]}" height="300" frameborder="0" allowfullscreen></iframe>`;
+        let idMatch = url.match(/vimeo\.com\/(\d+)/);
+        if(idMatch && idMatch[1]){
+            container.innerHTML = `<iframe src="https://player.vimeo.com/video/${idMatch[1]}" height="300" frameborder="0" allowfullscreen></iframe>`;
         } else {
             container.innerHTML = `<iframe src="${url}" height="300" frameborder="0" allowfullscreen></iframe>`;
         }
@@ -175,6 +175,10 @@ function updateMediaDisplay(url){
 }
 
 window.start = function() {
+    if(!questionOpen){
+        alert("انتظر فتح السؤال من المالك");
+        return;
+    }
     let name = document.getElementById("playerName").value.trim();
     if(name==="") return alert("اكتب اسمك");
     currentPlayer = name;
@@ -204,6 +208,7 @@ window.submitAnswer = function(){
 }
 
 window.showAdminLogin = function(){ document.getElementById("adminLogin").style.display="block"; }
+
 window.adminCheck = function(){
     if(document.getElementById("adminPass").value === "Dosary"){
         showRanking();
@@ -227,6 +232,7 @@ window.showRanking = function(){
     });
 }
 
+// تحديث السؤال والوسائط من قبل المالك وفتح السؤال
 window.updateQuestion = function(){
     let q = document.getElementById("newQuestion").value.trim();
     let a = document.getElementById("newAnswer").value.trim();
@@ -238,7 +244,8 @@ window.updateQuestion = function(){
         currentMedia: m,
         answered: {}
     });
-    alert("تم تحديث السؤال بنجاح");
+    questionOpen = true;
+    alert("تم تحديث السؤال وفتحه للمشتركين");
 }
 
 window.resetPoints = function(){
